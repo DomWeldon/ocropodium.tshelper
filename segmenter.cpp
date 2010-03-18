@@ -133,11 +133,15 @@ void Segmenter::mouseMoveEvent (QGraphicsSceneMouseEvent * event)
         // forwards to event to items under the cursor
         this->QGraphicsScene::mouseMoveEvent(event);
     } else if (drawMode()) {
-        if (!event->buttons() & Qt::LeftButton)
+        // if we're not dragging and the marker is hidden
+        // put the marker under the mouse and show it
+        if (!event->buttons() & Qt::LeftButton && !m_markerdivider->isVisible()) {
+            m_markerdivider->setPosition(event->scenePos());
             m_markerdivider->setVisible(true);
-        if (event->modifiers() & Qt::AltModifier)
+        }
+        if (event->modifiers() & Qt::AltModifier) {
             m_captivedivider->setRotation(event->scenePos());
-        else {
+        } else {
             // prevent the 'jump' when the mouse and the item shift out of alignment
             // following a rotation by accounting for the direction of the mouse
             // and the displacement between them.  If in front of the item but moving
@@ -225,6 +229,7 @@ void Segmenter::deleteDivider(QGraphicsItem *todelete)
                 removeItem(todelete);
                 m_dividers->erase(iter);
                 update();
+                break;
             } else {
                 iter++;
             }
