@@ -278,10 +278,10 @@ void Divider::setRotation(QPointF pointat)
 bool Divider::deletePointAt(QPointF point)
 {
     for (int i = 1; i < m_poly.size() - 1; i++) {
-        QLineF line(mapToItem(this, point), mapToScene(m_poly.value(i)));
+        QLineF line(mapFromScene(point), mapToScene(m_poly.value(i)));
         if (line.length() < HRADIUS) {
             m_poly.remove(i);
-            update();
+            scene()->update();
             return true;
         }
     }
