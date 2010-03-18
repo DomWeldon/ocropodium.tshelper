@@ -164,9 +164,13 @@ void Segmenter::mousePressEvent (QGraphicsSceneMouseEvent * event)
         this->QGraphicsScene::mousePressEvent(event);
     } else if (deleteMode()) {
         Divider* todelete = static_cast<Divider*>(this->itemAt(event->scenePos()));
-        if (!todelete->deletePointAt(event->scenePos())) {
-            deleteDivider(todelete);
-        }
+        // TODO: Figure out why this causes a weird crash
+        // it's supposed to test if we can delete an intermediate
+        // point instead of the whole divider
+        //if (!todelete->deletePointAt(event->scenePos())) {
+        //    deleteDivider(todelete);
+        //}
+        deleteDivider(todelete);
     } else if (drawMode() && event->buttons() & Qt::LeftButton) {
         Divider* newdiv = addDivider(m_markerdivider->mapRectToScene(m_captivedivider->boundingRect()).center());
         // set the new div to match the marker poly
@@ -217,14 +221,15 @@ void Segmenter::deleteDivider(QGraphicsItem *todelete)
     if (todelete) {
         DividerList::iterator iter;
         for (iter = m_dividers->begin(); iter != m_dividers->end(); ) {
-            if (todelete == *iter) {
-                m_dividers->erase(iter);
+            if (todelete == *iter) {                
                 removeItem(todelete);
+                m_dividers->erase(iter);
+                update();
             } else {
                 iter++;
             }
         }
-    }
+    }    
     emit dividersChanged();
 }
 
