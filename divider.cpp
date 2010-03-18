@@ -225,7 +225,6 @@ QVariant Divider::itemChange(GraphicsItemChange change, const QVariant &value)
 {
     switch (change) {
     case ItemPositionHasChanged:
-        qDebug() << "Position changed";
         update();
     default:
         break;
@@ -269,7 +268,7 @@ void Divider::setRotation(QPointF pointat)
 
     // TODO: Work out how to do this in proper matrix-speak
     // we've got the angle, so work out where the points
-    // have to be to line along it
+    // have to be to line along it   
     qreal newadj = tan(angle) * boundingRect().height();
     m_poly.first().rx() = -(newadj / 2);
     m_poly.last().rx() = newadj / 2;

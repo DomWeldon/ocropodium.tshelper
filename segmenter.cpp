@@ -296,7 +296,6 @@ void Segmenter::guessDividers()
                 iswhite = false;
                 if (gotwhite) {
                     QRect region(whitestart, QPoint(x - 1, bottom));
-                    qDebug() << "Adding white region: " << region;
                     whiteregions.append(region);
                     gotwhite = false;
                 }
