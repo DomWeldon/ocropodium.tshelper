@@ -146,7 +146,6 @@ void TsHelper::setScanDone()
     updateResources();
 }
 
-
 QString TsHelper::readTextFromFile(QString textpath)
 {    
     QFile f(textpath);
@@ -165,14 +164,11 @@ QString TsHelper::readTextFromFile(QString textpath)
     return text;
 }
 
-
 void TsHelper::resetText()
 {
     m_scanner->currentLine()->setTranscript(readTextFromFile(m_scanner->currentTextPath()));
     loadText();
 }
-
-
 
 void TsHelper::loadText()
 {    
@@ -206,9 +202,18 @@ void TsHelper::loadImage()
 
 void TsHelper::transcriptEdited()
 {
-    ui->actionWrite->trigger();
+    if (!saveTranscript()) {
+        int result = QMessageBox::critical(this, "Error saving transcript",
+                                           "The text transcript could not be saved.",
+                                           QMessageBox::Cancel|QMessageBox::Ignore,
+                                           QMessageBox::Ignore);
+        if (result == QMessageBox::Cancel) {
+            return;
+        }
+    }
     if (m_scanner->forward()) {
         updateResources();
+        ui->lineEdit->selectAll();
     }
 }
 
@@ -246,8 +251,7 @@ void TsHelper::updateResources()
     if (m_scanner->hasLines()) {
         ui->sceneview->setEnabled(true);
         loadText();
-        loadImage();        
-        ui->lineEdit->selectAll();
+        loadImage();                
         m_segmenter->init(m_scanner->currentDividers(), m_scanner->currentPngPath());
         setWindowTitle(m_scanner->currentPage() + " : " + m_scanner->currentPng());
     } else {
@@ -270,6 +274,35 @@ void TsHelper::syncActions()
     ui->actionSave_Transcript_as->setEnabled(m_scanner->hasLines());
     ui->actionSave_Transcript->setEnabled(m_scanner->hasLines());
     ui->actionOpen_Transcript->setEnabled(m_scanner->hasLines());
+}
+
+bool TsHelper::saveCsegPng()
+{
+    // get the image name
+    QString outname = m_scanner->currentPngPath();
+    outname.replace(QString("png"), QString("gt.cseg.png"));
+
+    // get the segments and save it
+    QImage outimage = m_segmenter->colorSegments();
+    return outimage.save(outname);
+}
+
+bool TsHelper::saveTranscript()
+{
+    QString outtext = ui->lineEdit->text();
+    QString txtname = m_scanner->currentTextPath();
+    txtname.replace(QString("txt"), QString("gt.txt"));
+    QFile f(txtname);
+    if (!f.open(QIODevice::WriteOnly)) {
+        qDebug() << "ERROR WRITING TEXT FILE: " << txtname;
+        return false;
+    }
+
+    QTextStream out(&f);
+    out.setCodec("UTF-8");
+    out << outtext << endl;
+    f.close();
+    return true;
 }
 
 void TsHelper::exportAll(bool nonmatching, bool singlesegment)
@@ -367,28 +400,8 @@ void TsHelper::on_actionPreview_triggered()
 
 void TsHelper::on_actionWrite_triggered()
 {
-    // get the image name
-    QString outname = m_scanner->currentPngPath();
-    outname.replace(QString("png"), QString("gt.cseg.png"));
-
-    // get the segments and save it
-    QImage outimage = m_segmenter->colorSegments();
-    outimage.save(outname);
-
-
-    QString outtext = ui->lineEdit->text();
-    QString txtname = m_scanner->currentTextPath();
-    txtname.replace(QString("txt"), QString("gt.txt"));
-    QFile f(txtname);
-    if (!f.open(QIODevice::WriteOnly)) {
-        qDebug() << "ERROR WRITING TEXT FILE: " << txtname;
-        return;
-    }
-
-    QTextStream out(&f);
-    out.setCodec("UTF-8");
-    out << outtext << endl;
-    f.close();
+    saveTranscript();
+    saveCsegPng();
 }
 
 void TsHelper::on_actionReset_triggered()

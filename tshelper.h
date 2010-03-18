@@ -66,6 +66,8 @@ private slots:
     void transcriptEdited();
     void saveableAction(const QString& text);
     void saveableAction();
+    bool saveTranscript();
+    bool saveCsegPng();
     void keyPressEvent(QKeyEvent *event);
     void keyReleaseEvent(QKeyEvent *event);
     void closeEvent(QCloseEvent *);
