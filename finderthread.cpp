@@ -44,10 +44,13 @@ void FinderThread::setPath(const QString &path)
 
 void FinderThread::run()
 {
-    QDir dir(m_path);
-    QStringList filters;
-    filters << "[0-9][0-9][0-9][0-9]";
-    dir.setNameFilters(filters);
+    QStringList pagefilters;
+    pagefilters << "[0-9][0-9][0-9][0-9]";
+    QStringList linefilters;
+    linefilters << "??????.png";
+
+    QDir dir(m_path);    
+    dir.setNameFilters(pagefilters);
     dir.setFilter(QDir::Dirs|QDir::Readable|QDir::NoDotAndDotDot);
     dir.setSorting(QDir::Name);
 
@@ -55,20 +58,18 @@ void FinderThread::run()
     // it shouldn't be at the moment
     m_mutex.lock();
 
-    *m_pagenames = dir.entryList();
-    emit pagesFound(m_pagenames->size());
+    emit pagesFound(dir.entryList().size());
 
-    for (int i = 0; i < m_pagenames->size(); i++) {
+    for (int i = 0; i < dir.entryList().size(); i++) {
         if (m_stopped)
             break;
 
         emit scanningPage(i + 1);
 
-        QString entry = m_pagenames->at(i);
-        QDir pagedir(m_path + "/" + entry);
-        QStringList filters;
-        filters << "??????.png";
-        pagedir.setNameFilters(filters);
+        QString entry = dir.entryList().at(i);        
+
+        QDir pagedir(m_path + "/" + entry);        
+        pagedir.setNameFilters(linefilters);
         pagedir.setFilter(QDir::Readable|QDir::Files);
         pagedir.setSorting(QDir::Name);
 
@@ -77,7 +78,8 @@ void FinderThread::run()
             lines->append(new OcrLine(pagedir.entryList()[l]));
         }
         m_pagelist->append(lines);
-        *m_linecount += pagedir.entryList().size();
+        m_pagenames->append(entry);
+        *m_linecount += lines->size();
     }
 
     emit scanningDone();
