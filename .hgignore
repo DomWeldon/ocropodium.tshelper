@@ -1,0 +1,12 @@
+syntax: glob
+
+.svn/*
+*.o
+*.pro.user
+
+syntax: regexp
+^release
+^debug
+^moc_.+
+^tshelper
+^Makefile.*
