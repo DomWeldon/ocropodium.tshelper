@@ -372,7 +372,7 @@ void TsHelper::on_actionWrite_triggered()
 {
     // get the image name
     QString outname = m_scanner->currentPngPath();
-    outname.replace(QString("png"), QString("gt.cseg.png"));
+    outname.replace(QString(".png"), QString(".cseg.png"));
 
     // get the segments and save it
     QImage outimage = m_segmenter->colorSegments();
