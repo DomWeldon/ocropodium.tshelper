@@ -16,15 +16,17 @@
 
 #include "finderthread.h"
 
-FinderThread::FinderThread(QStringList *pagenames, PageList *pagelist, int* linecount, QObject *parent)
+FinderThread::FinderThread(QStringList *pagenames, PageList *pagelist, int* linecount, int* offset, QObject *parent)
     :
     m_path(""),
     m_pagenames(pagenames),
     m_pagelist(pagelist),
     m_linecount(linecount),
+    m_offset(offset),
     m_stopped(false)
 {
-
+    m_linefilters << "??????.png";
+    m_pagefilters << "[0-9][0-9][0-9][0-9]";
 }
 
 FinderThread::~FinderThread()
@@ -44,44 +46,56 @@ void FinderThread::setPath(const QString &path)
 
 void FinderThread::run()
 {
-    QStringList pagefilters;
-    pagefilters << "[0-9][0-9][0-9][0-9]";
-    QStringList linefilters;
-    linefilters << "??????.png";
+    // the page list will be empty the first time
+    // we run, so fill it
+    if (m_pagenames->size() == 0)
+        loadPages();
 
-    QDir dir(m_path);    
-    dir.setNameFilters(pagefilters);
-    dir.setFilter(QDir::Dirs|QDir::Readable|QDir::NoDotAndDotDot);
-    dir.setSorting(QDir::Name);
+    emit pagesFound(m_pagenames->size());
 
     // make sure the pagelist isn't modified externally
     // it shouldn't be at the moment
     m_mutex.lock();
-
-    emit pagesFound(dir.entryList().size());
-
-    for (int i = 0; i < dir.entryList().size(); i++) {
+    int limit = qMin(*m_offset + PRELOAD_PAGES, m_pagenames->size());
+    for (int i = *m_offset; i < limit; i++) {
         if (m_stopped)
             break;
-
-        emit scanningPage(i + 1);
-
-        QString entry = dir.entryList().at(i);        
-
-        QDir pagedir(m_path + "/" + entry);        
-        pagedir.setNameFilters(linefilters);
-        pagedir.setFilter(QDir::Readable|QDir::Files);
-        pagedir.setSorting(QDir::Name);
-
-        LineList* lines = new LineList;
-        for (int l = 0; l < pagedir.entryList().size(); l++) {
-            lines->append(new OcrLine(pagedir.entryList()[l]));
-        }
-        m_pagelist->append(lines);
-        m_pagenames->append(entry);
-        *m_linecount += lines->size();
-    }
+        loadLines(i);
+    }    
+    m_mutex.unlock();
 
     emit scanningDone();
+}
+
+
+void FinderThread::loadPages()
+{
+    QDir dir(m_path);
+    dir.setNameFilters(m_pagefilters);
+    dir.setFilter(QDir::Dirs|QDir::Readable|QDir::NoDotAndDotDot);
+    dir.setSorting(QDir::Name);
+
+    m_mutex.lock();
+    *m_pagenames = dir.entryList();
     m_mutex.unlock();
+
+}
+
+void FinderThread::loadLines(int page)
+{
+    emit scanningPage(page + 1);
+
+    QString entry = m_pagenames->at(page);
+
+    QDir pagedir(m_path + "/" + entry);
+    pagedir.setNameFilters(m_linefilters);
+    pagedir.setFilter(QDir::Readable|QDir::Files);
+    pagedir.setSorting(QDir::Name);
+
+    LineList* lines = new LineList;
+    for (int l = 0; l < pagedir.entryList().size(); l++) {
+        lines->append(new OcrLine(pagedir.entryList()[l]));
+    }
+    m_pagelist->append(lines);
+    *m_linecount += lines->size();
 }

@@ -25,9 +25,10 @@ LineFinder::LineFinder(QObject *parent) :
     m_pos(-1),
     m_pagepos(-1),
     m_linepos(-1),
-    m_linecount(0)
+    m_linecount(0),
+    m_loaded(0)
 {
-    m_finderthread = new FinderThread(m_pagenames, m_pagelist, &m_linecount, this);
+    m_finderthread = new FinderThread(m_pagenames, m_pagelist, &m_linecount, &m_loaded, this);
     connect(m_finderthread, SIGNAL(pagesFound(int)), this, SLOT(lineScanDone()));
     connect(m_finderthread, SIGNAL(scanningDone()), this, SLOT(lineScanDone()));
     connect(m_finderthread, SIGNAL(pagesFound(int)), this, SLOT(forwardPagesFound(int)));
@@ -67,11 +68,7 @@ void LineFinder::scan(const QString &path)
 
     emit scanningStarted();
 
-    m_finderthread->setPath(m_path);
-    if (m_finderthread->isRunning()) {
-        m_finderthread->stop();
-        m_finderthread->wait();
-    }
+    m_finderthread->setPath(m_path);    
     clear();
 
     // null everything
@@ -79,24 +76,46 @@ void LineFinder::scan(const QString &path)
     m_linepos = 0;
     m_pagepos = 0;
     m_pos = 0;
+    m_loaded = 0;
 
+    startThread();
+}
+
+void LineFinder::startThread()
+{
+    if (m_finderthread->isRunning()) {
+        m_finderthread->stop();
+        m_finderthread->wait();
+    }
     m_finderthread->start();
 }
 
 void LineFinder::forwardPagesFound(int count)
 {
+    // don't report scanning if we're doing a lookahead
+    if (m_loaded > 0)
+        return;
+
     // we'll just forward this on to the parent window
     emit pagesFound(count);
 }
 
 void LineFinder::forwardScanningPage(int page)
 {
-    // ditto for this...    
+    // don't report scanning if we're doing a lookahead
+    if (m_loaded > 0)
+        return;
+
+    // ditto for this...
     emit scanningPage(page);
 }
 
 void LineFinder::lineScanDone()
 {
+    // don't report scanning if we're doing a lookahead
+    if (m_loaded > 0)
+        return;
+
     if (m_linecount > 0) {
         m_pos = 0;
         m_linepos = 0;
@@ -194,6 +213,13 @@ bool LineFinder::forward()
         m_linepos = 0;
     } else {
         m_linepos++;
+    }
+
+    // load some more pages if necessary
+    if (m_pagepos + 1 == m_loaded + PRELOAD_PAGES &&
+            m_loaded + PRELOAD_PAGES < m_pagenames->size()) {
+        m_loaded += PRELOAD_PAGES;
+        startThread();
     }
 
     return true;

@@ -70,6 +70,8 @@ public slots:
     void forwardScanningPage(int page);
 
 private:
+    void startThread();
+
     QString m_path;
     PageList* m_pagelist;
     QStringList* m_pagenames;
@@ -78,6 +80,7 @@ private:
     int m_pagepos;
     int m_linepos;
     int m_linecount;    
+    int m_loaded;
 
 };
 
