@@ -10,3 +10,4 @@ syntax: regexp
 ^moc_.+
 ^tshelper
 ^Makefile.*
+^ui_.*
