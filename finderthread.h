@@ -27,12 +27,15 @@
 typedef QList<OcrLine*> LineList;
 typedef QList<LineList*> PageList;
 
+// number of pages to preload
+const int PRELOAD_PAGES = 2;
+
 
 class FinderThread : public QThread
 {
 Q_OBJECT
 public:
-    explicit FinderThread(QStringList *pagenames, PageList *pagelist, int* linecount, QObject *parent = 0);
+    explicit FinderThread(QStringList *pagenames, PageList *pagelist, int* linecount, int* offset, QObject *parent = 0);
     ~FinderThread();
 
     void stop();
@@ -47,11 +50,18 @@ signals:
     void scanningDone();
 
 private:
+    void loadPages();
+    void loadLines(int page);
+
+    QStringList m_linefilters;
+    QStringList m_pagefilters;
+
     QString m_path;
     QStringList* m_pagenames;
     PageList* m_pagelist;
     QMutex m_mutex;
     int* m_linecount;
+    int* m_offset;
     bool m_stopped;
 
 };
