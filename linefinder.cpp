@@ -91,7 +91,7 @@ void LineFinder::forwardPagesFound(int count)
 
 void LineFinder::forwardScanningPage(int page)
 {
-    // ditto for this...
+    // ditto for this...    
     emit scanningPage(page);
 }
 
@@ -189,7 +189,7 @@ bool LineFinder::forward()
         return false;
 
     m_pos++;
-    if (m_pagepos == m_pagenames->at(m_pagepos).size() -1) {
+    if (m_linepos == m_pagelist->at(m_pagepos)->size() -1) {
         m_pagepos++;
         m_linepos = 0;
     } else {
@@ -207,7 +207,7 @@ bool LineFinder::backward()
     m_pos--;
     if (m_linepos == 0) {
         m_pagepos--;
-        m_linepos = m_pagenames->at(m_pagepos).size() -1;
+        m_linepos = m_pagelist->at(m_pagepos)->size() -1;
     } else {
         m_linepos--;
     }
