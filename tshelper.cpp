@@ -55,7 +55,7 @@ TsHelper::TsHelper(QWidget *parent) :
     // show progress when a bookstore line scan is in progress
     connect(m_scanner, SIGNAL(scanningStarted()), m_progress, SLOT(show()));    
     connect(m_scanner, SIGNAL(pagesFound(int)), this, SLOT(setScanPageCount(int)));
-    connect(m_scanner, SIGNAL(scanningPage(int)), this, SLOT(setScanCurrentPage(int)));
+    connect(m_scanner, SIGNAL(scanningPage(int)), m_progress, SLOT(setValue(int)));
     connect(m_scanner, SIGNAL(scanningDone()), this, SLOT(setScanDone()));
     connect(m_progress, SIGNAL(canceled()), m_scanner, SLOT(cancelScan()));
 
@@ -130,7 +130,6 @@ void TsHelper::setScanPageCount(int count)
 {
     m_progress->show();
     m_progress->setWindowTitle("Looking for lines...");
-    m_progress->setLabelText(QString("Loading page %1 of %2").arg(count).arg(count));
     m_progress->setCancelButtonText("Cancel");
     m_progress->setMinimum(0);
     m_progress->setMaximum(count > 5 ? count : 0);
@@ -138,8 +137,6 @@ void TsHelper::setScanPageCount(int count)
 
 void TsHelper::setScanCurrentPage(int page)
 {
-    int pagecount = m_progress->maximum();
-    m_progress->setLabelText(QString("Loading page %1 of %2").arg(page).arg(pagecount));
     m_progress->setValue(page);
 }
 
@@ -209,9 +206,10 @@ void TsHelper::loadImage()
 
 void TsHelper::transcriptEdited()
 {
-    ui->actionWrite->trigger();
+    saveTranscript();
     if (m_scanner->forward()) {
         updateResources();
+        ui->lineEdit->selectAll();
     }
 }
 
@@ -250,7 +248,6 @@ void TsHelper::updateResources()
         ui->sceneview->setEnabled(true);
         loadText();
         loadImage();        
-        ui->lineEdit->selectAll();
         m_segmenter->init(m_scanner->currentDividers(), m_scanner->currentPngPath());
         setWindowTitle(m_scanner->currentPage() + " : " + m_scanner->currentPng());
     } else {
@@ -368,7 +365,7 @@ void TsHelper::on_actionPreview_triggered()
     m_segmenter->showPreview();
 }
 
-void TsHelper::on_actionWrite_triggered()
+bool TsHelper::saveCsegPng()
 {
     // get the image name
     QString outname = m_scanner->currentPngPath();
@@ -376,8 +373,11 @@ void TsHelper::on_actionWrite_triggered()
 
     // get the segments and save it
     QImage outimage = m_segmenter->colorSegments();
-    outimage.save(outname);
+    return outimage.save(outname);
+}
 
+bool TsHelper::saveTranscript()
+{
 
     QString outtext = ui->lineEdit->text();
     QString txtname = m_scanner->currentTextPath();
@@ -385,13 +385,20 @@ void TsHelper::on_actionWrite_triggered()
     QFile f(txtname);
     if (!f.open(QIODevice::WriteOnly)) {
         qDebug() << "ERROR WRITING TEXT FILE: " << txtname;
-        return;
+        return false;
     }
 
     QTextStream out(&f);
     out.setCodec("UTF-8");
     out << outtext << endl;
     f.close();
+    return true;
+}
+
+void TsHelper::on_actionWrite_triggered()
+{
+    saveCsegPng();
+    saveTranscript();
 }
 
 void TsHelper::on_actionReset_triggered()
