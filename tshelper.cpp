@@ -276,16 +276,24 @@ void TsHelper::exportAll(bool nonmatching, bool singlesegment)
 {
     m_scanner->begin();
     qDebug() << "Exporting groundtruths...";
-    m_progress->setWindowTitle("Exporting Groundtruths...");
-    m_progress->setMaximum(m_scanner->lineCount());
+    m_progress->setValue(0);
+    m_progress->setWindowTitle("Exporting Groundtruths...");    
     m_progress->show();
+    int linenum = 0;
     while (m_scanner->forward()) {
 
         if (m_progress->wasCanceled()) {
             break;
         }
 
-        m_progress->setValue(m_progress->value() + 1);
+        linenum++;
+        m_progress->setValue(linenum);
+
+        // the linecount might change as we lazy-load lines
+        // so adjust it each time
+        m_progress->setMaximum(m_scanner->lineCount());
+        m_progress->setLabelText(QString("Loading line %1 on page %2").arg(linenum).arg(m_scanner->currentPage()));
+
         m_segmenter->init(m_scanner->currentDividers(), m_scanner->currentPngPath());
         updateResources();
 
@@ -304,8 +312,8 @@ void TsHelper::exportAll(bool nonmatching, bool singlesegment)
         update();
         ui->actionWrite->trigger();
     }
-    m_progress->hide();
     m_scanner->begin();
+    m_progress->hide();    
     updateResources();
 
 }
