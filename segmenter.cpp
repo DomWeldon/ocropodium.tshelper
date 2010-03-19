@@ -396,11 +396,11 @@ QImage Segmenter::colorSegments(bool previewcoloring)
 
 QColor Segmenter::longToRGB(int num) const
 {
-    int red = num % 0x100;
+    int blue = num % 0x100;
     num /= 0x100;
     int green = num % 0x100;
     num /= 0x100;
-    int blue = num % 0x100;
+    int red = num % 0x100;
     return QColor(red, green, blue);
 
 }
